@@ -136,11 +136,7 @@ if (!class_exists('WCAPF_Active_Filters_Widget')) {
 		public function form($instance) {
 			?>
 			<p>
-				<?php _e('No widgets settings, translations do the job') ?>
-				<ul>
-					<li>Active Filters:</li>
-					<li>Remove all:</li>
-				</ul>
+				<?php _e('No widgets settings (check translations)') ?>
 			</p>
 			<?php
 		}

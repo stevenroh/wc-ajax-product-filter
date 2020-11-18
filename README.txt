@@ -1,9 +1,9 @@
 === WC Ajax Product Filter ===
 Contributors: shamimmoeen
-Tags: woocommerce ajax product filter, woocommerce product filter, woocommerce ajax filter, woocommerce filter, products filter, ajax filter, advanced products filter, woocommerce layered nav, woocommerce layered navigation, ajax filtered nav, ajax filtered navigation, price filter, ajax price filter, ajax product search, woocommerce product sorting, woocommerce, wc ajax product filter, wc product filter, wc ajax filter
+Tags: product filter, ajax product filter, ajax filter, woocommerce ajax product filter, woocommerce product filter, woocommerce ajax filter, woocommerce filter, products filter, ajax filter, advanced products filter, woocommerce layered nav, woocommerce layered navigation, ajax filtered nav, ajax filtered navigation, price filter, ajax price filter, ajax product search, woocommerce product sorting, woocommerce, wc ajax product filter, wc product filter, wc ajax filter, wc filter
 Requires at least: 4.0
-Tested up to: 4.6
-Stable tag: 2.0
+Tested up to: 4.7.4
+Stable tag: 2.0.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -40,6 +40,14 @@ Features:
 
 == Frequently Asked Questions ==
 
+= Incorrect number of products =
+
+Go to settings page. You will see a checkbox to clear transients.
+
+= Active filters doesn't update =
+
+Maybe your widgets don't have ids. See this support. https://wordpress.org/support/topic/active-filters-doesnt-update/
+
 = Can I add custom scripts to load after updating shop loop? =
 
 Yes, you can. Go to settings page. You will see a text field to put your custom scripts.
@@ -48,13 +56,27 @@ Yes, you can. Go to settings page. You will see a text field to put your custom 
 
 Yes, you can. Go to settings page. You will see a text field to chage the overlay background color.
 
-== Screenshots ==
-
-1. Plugin frontend
-2. Widget in sidebar
-3. Backend settings
-
 == Changelog ==
+
+= 2.0.3.1 =
+
+* Added functionality terms orderby => 'menu_order'
+
+= 2.0.3 =
+
+* Fixed bug - 'wcapf_get_term_objects' funtion was working incorrectly
+
+= 2.0.2 =
+
+* Added option to disable transients
+* Added option to clear transients
+
+= 2.0.1 =
+
+* Fixed filtering bugs on product taxonomy pages
+* Added more functionality to price filter display type list widget
+* Added option to enable/disable font awesome
+* Updated localization
 
 = 2.0 =
 

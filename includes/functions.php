@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
 
 /**
  * Get child term ids for given term.
- * 
+ *
  * @param  int $term_id
  * @param  string $taxonomy
  * @return array
@@ -21,7 +21,7 @@ if (!function_exists('wcapf_get_term_childs')) {
 
 		if (false === ($term_childs = get_transient($transient_name))) {
 			$term_childs = get_term_children($term_id, $taxonomy);
-			set_transient($transient_name, $term_childs, WCAPF_CACHE_TIME);
+			set_transient($transient_name, $term_childs, wcapf_transient_lifespan());
 		}
 
 		return (array)$term_childs;
@@ -30,7 +30,7 @@ if (!function_exists('wcapf_get_term_childs')) {
 
 /**
  * Get ancestor term ids for given term.
- * 
+ *
  * @param  int $term_id
  * @param  string $taxonomy
  * @return array
@@ -55,7 +55,7 @@ if (!function_exists('wcapf_get_term_ancestors')) {
 
 /**
  * Get details for given term.
- * 
+ *
  * @param  int $term_id
  * @param  string $taxonomy
  * @return mixed
@@ -66,7 +66,7 @@ if (!function_exists('wcapf_get_term_data')) {
 
 		if (false === ($term_data = get_transient($transient_name))) {
 			$term_data = get_term($term_id, $taxonomy);
-			set_transient($transient_name, $term_data, WCAPF_CACHE_TIME);
+			set_transient($transient_name, $term_data, wcapf_transient_lifespan());
 		}
 
 		return $term_data;
@@ -80,17 +80,13 @@ if (!function_exists('wcapf_get_term_data')) {
  * @param  string $taxonomy
  * @return array
  */
-if (!function_exists('wcapf_get_term_objects')) {
-	function wcapf_get_term_objects($term_id, $taxonomy) {
-		global $wcapf;
-		$unfiltered_product_ids = $wcapf->unfilteredProductIds();
-
+if (!function_exists('wcapf_get_term_objects_direct')) {
+	function wcapf_get_term_objects_direct($term_id, $taxonomy) {
 		$transient_name = 'wcapf_term_objects_' . md5(sanitize_key($taxonomy) . sanitize_key($term_id));
 
 		if (false === ($objects_in_term = get_transient($transient_name))) {
 			$objects_in_term = get_objects_in_term($term_id, $taxonomy);
-			$objects_in_term = array_intersect($objects_in_term, $unfiltered_product_ids);
-			set_transient($transient_name, $objects_in_term, WCAPF_CACHE_TIME);
+			set_transient($transient_name, $objects_in_term, wcapf_transient_lifespan());
 		}
 
 		return (array)$objects_in_term;
@@ -98,8 +94,27 @@ if (!function_exists('wcapf_get_term_objects')) {
 }
 
 /**
+ * Get product ids for given term those exist in unfiltered product ids.
+ *
+ * @param  int $term_id
+ * @param  string $taxonomy
+ * @return array
+ */
+if (!function_exists('wcapf_get_term_objects')) {
+	function wcapf_get_term_objects($term_id, $taxonomy) {
+		global $wcapf;
+		$unfiltered_product_ids = $wcapf->unfilteredProductIds();
+
+		$objects_in_term = wcapf_get_term_objects_direct($term_id, $taxonomy);
+		$objects_in_term = array_intersect($objects_in_term, $unfiltered_product_ids);
+
+		return (array)$objects_in_term;
+	}
+}
+
+/**
  * Get product ids for given term, it will also pull the products from its child terms.
- * 
+ *
  * @param  int $term_id
  * @param  string $taxonomy
  * @return array
@@ -132,7 +147,7 @@ if (!function_exists('wcapf_clear_transients')) {
 
 /**
  * wcapf_list_sub_terms function
- * 
+ *
  * @param  array $sub_term_args
  * @param  bool $found
  * @return mixed
@@ -232,7 +247,7 @@ if (!function_exists('wcapf_list_sub_terms')) {
 
 /**
  * wcapf_list_terms function
- * 
+ *
  * @param  array $attr_args
  * @return mixed
  */
@@ -246,7 +261,7 @@ if (!function_exists('wcapf_list_terms')) {
 		extract($attr_args);
 
 		$parent_args = array(
-			'orderby'    => 'name',
+			'orderby'    => 'menu_order',
 			'order'      => 'ASC',
 			'hide_empty' => true
 		);
@@ -256,18 +271,20 @@ if (!function_exists('wcapf_list_terms')) {
 		}
 
 		$parent_terms = get_terms($taxonomy, $parent_args);
-		
+
 		$html = '';
 		$found = false;
 
-		if (sizeof($parent_terms) > 0) {
-			$html .= '<div class="wcapf-layered-nav">';
+		$display_class = isset($display_type) ? ' et-'. $display_type .'-wcapf' : '';
+
+		if (is_array($parent_terms) && sizeof($parent_terms) > 0) {
+			$html .= '<div class="wcapf-layered-nav'. $display_class .'">';
 			$html .= '<ul>';
 
 			// store term ids from url for this attribute
 			// example: attra_size=9,29,45
 			$term_ids = array();
-			
+
 			if (key_exists($data_key, $url_array) && !empty($url_array[$data_key])) {
 				$term_ids = explode(',', $url_array[$data_key]);
 			}
@@ -286,20 +303,38 @@ if (!function_exists('wcapf_list_terms')) {
 
 			$ancestors = array_unique($ancestors);
 
+			/* ET */
+			if ( $enable_hierarchy !== true ) {
+				$prod_ids = ( $query_type === 'and' ) ? $filtered_product_ids : $unfiltered_product_ids;
+
+				global $wpdb;
+	      $all_prod_term_ids = array_count_values( $wpdb->get_col( "SELECT tr.term_taxonomy_id FROM $wpdb->term_relationships AS tr WHERE tr.object_id IN (" . implode( ',', $prod_ids ) . ")" ) );
+	    }
+
 			foreach ($parent_terms as $parent_term) {
 				$parent_term_id = $parent_term->term_id;
-				// get sub term ids for this term
-				$sub_term_ids = wcapf_get_term_childs($parent_term_id, $taxonomy);
-
-				// get product ids for this term
-				$products_in_term = wcapf_get_term_products($parent_term_id, $taxonomy);
-
-				if ($query_type === 'and') {
-					// count product ids those are not present in $filtered_product_ids array
-					$count = sizeof(array_intersect($products_in_term, $filtered_product_ids));
+				
+				/* ET */
+				if ( $enable_hierarchy !== true ) {
+					
+					$count = ( array_key_exists( $parent_term_id, $all_prod_term_ids ) ) ? $all_prod_term_ids[ $parent_term_id ] : 0;
+				
 				} else {
-					// count product ids those are present in $unfiltered_product_ids
-					$count = sizeof(array_intersect($products_in_term, $unfiltered_product_ids));
+
+					// get sub term ids for this term
+					$sub_term_ids = wcapf_get_term_childs($parent_term_id, $taxonomy);
+
+					// get product ids for this term
+					$products_in_term = wcapf_get_term_products($parent_term_id, $taxonomy);
+
+					if ($query_type === 'and') {
+						// count product ids those are not present in $filtered_product_ids array
+						$count = sizeof(array_intersect($products_in_term, $filtered_product_ids));
+					} else {
+						// count product ids those are present in $unfiltered_product_ids
+						$count = sizeof(array_intersect($products_in_term, $unfiltered_product_ids));
+					}
+
 				}
 
 				$force_show = false;
@@ -322,36 +357,49 @@ if (!function_exists('wcapf_list_terms')) {
 						$html .= '<li>';
 					}
 
-						$html .= '<a href="javascript:void(0)" data-key="' . $data_key . '" data-value="' . $parent_term_id . '" data-multiple-filter="' . $enable_multiple . '">' . $parent_term->name . '</a>';
+					$swatch = $swatch_style = false;
+					$swatch_color = get_term_meta( $parent_term->term_id, 'product_attribute_color', true );
+					$swatch_image = get_term_meta( $parent_term->term_id, 'product_attribute_image', true );
 
-						if ($show_count === true) {
-							$html .= '<span class="count">(' . $count . ')</span>';
+					if ( $swatch_color ) {
+						$swatch = '<span class="et-swatch-circle"><span style="background-color:'. $swatch_color .'"></span></span>';
+						$swatch_style = 'et-color-swatch';
+					} else if ( $swatch_image ) {
+						$swatch_image = wp_get_attachment_image ( $swatch_image, 'thumbnail');
+						$swatch = '<span class="et-swatch-circle"><span>'. $swatch_image .'</span></span>';
+						$swatch_style = 'et-image-swatch';
+					}
+
+					$html .= '<a href="javascript:void(0)" data-key="' . $data_key . '" data-value="' . $parent_term_id . '" data-multiple-filter="' . $enable_multiple . '" class="'. $swatch_style .'">' . $swatch . '<span class="name">' .$parent_term->name . '</span></a>';
+
+					if ($show_count === true) {
+						$html .= '<span class="count">(' . $count . ')</span>';
+					}
+
+					if (($enable_hierarchy === true && $show_children_only !== true) || ($show_children_only === true && (in_array($parent_term_id, $term_ids) || $force_show === true))) {
+
+						if (sizeof($sub_term_ids) > 0) {
+							$sub_term_args = array(
+								'taxonomy'           => $taxonomy,
+								'data_key'           => $data_key,
+								'query_type'         => $query_type,
+								'enable_multiple'    => $enable_multiple,
+								'show_count'         => $show_count,
+								'enable_hierarchy'   => $enable_hierarchy,
+								'show_children_only' => $show_children_only,
+								'parent_term_id'     => $parent_term_id,
+								'sub_term_ids'       => $sub_term_ids,
+								'term_ids'           => $term_ids,
+								'ancestors'          => $ancestors
+							);
+
+							$results = wcapf_list_sub_terms($sub_term_args, $found);
+
+							$html .= $results['html'];
+							$found = $results['found'];
 						}
-					
-						if (($enable_hierarchy === true && $show_children_only !== true) || ($show_children_only === true && (in_array($parent_term_id, $term_ids) || $force_show === true))) {
 
-							if (sizeof($sub_term_ids) > 0) {
-								$sub_term_args = array(
-									'taxonomy'           => $taxonomy,
-									'data_key'           => $data_key,
-									'query_type'         => $query_type,
-									'enable_multiple'    => $enable_multiple,
-									'show_count'         => $show_count,
-									'enable_hierarchy'   => $enable_hierarchy,
-									'show_children_only' => $show_children_only,
-									'parent_term_id'     => $parent_term_id,
-									'sub_term_ids'       => $sub_term_ids,
-									'term_ids'           => $term_ids,
-									'ancestors'          => $ancestors
-								);
-
-								$results = wcapf_list_sub_terms($sub_term_args, $found);
-								
-								$html .= $results['html'];
-								$found = $results['found'];
-							}
-
-						}
+					}
 
 					$html .= '</li>';
 				}
@@ -370,7 +418,7 @@ if (!function_exists('wcapf_list_terms')) {
 
 /**
  * wcapf_dropdown_sub_terms function
- * 
+ *
  * @param  array $sub_term_args
  * @param  bool $found
  * @param  bool $depth
@@ -463,7 +511,7 @@ if (!function_exists('wcapf_dropdown_sub_terms')) {
 
 /**
  * wcapf_dropdown_terms function
- * 
+ *
  * @param  array $attr_args
  * @return mixed
  */
@@ -477,7 +525,7 @@ if (!function_exists('wcapf_dropdown_terms')) {
 		extract($attr_args);
 
 		$parent_args = array(
-			'orderby'    => 'name',
+			'orderby'    => 'menu_order',
 			'order'      => 'ASC',
 			'hide_empty' => true
 		);
@@ -487,7 +535,7 @@ if (!function_exists('wcapf_dropdown_terms')) {
 		}
 
 		$parent_terms = get_terms($taxonomy, $parent_args);
-		
+
 		$html = '';
 		$found = false;
 
@@ -525,7 +573,7 @@ if (!function_exists('wcapf_dropdown_terms')) {
 				// store term ids from url for this attribute
 				// example: attra_size=9,29,45
 				$term_ids = array();
-				
+
 				if (key_exists($data_key, $url_array) && !empty($url_array[$data_key])) {
 					$term_ids = explode(',', $url_array[$data_key]);
 				}
@@ -544,20 +592,43 @@ if (!function_exists('wcapf_dropdown_terms')) {
 
 				$ancestors = array_unique($ancestors);
 
+				/* ET */
+				if ( $enable_hierarchy !== true ) {
+					$prod_ids = ( $query_type === 'and' ) ? $filtered_product_ids : $unfiltered_product_ids;
+
+					global $wpdb;
+		      $all_prod_term_ids = array_count_values( $wpdb->get_col( "SELECT tr.term_taxonomy_id FROM $wpdb->term_relationships AS tr WHERE tr.object_id IN (" . implode( ',', $prod_ids ) . ")" ) );
+		    }
+				    
+				/*$prod_ids = ( $query_type === 'and' ) ? $filtered_product_ids : $unfiltered_product_ids;
+
+				global $wpdb;
+	      $all_prod_term_ids = array_count_values( $wpdb->get_col( "SELECT tr.term_taxonomy_id FROM $wpdb->term_relationships AS tr WHERE tr.object_id IN (" . implode( ',', $prod_ids ) . ")" ) );*/
+
 				foreach ($parent_terms as $parent_term) {
 					$parent_term_id = $parent_term->term_id;
-					// get sub term ids for this term
-					$sub_term_ids = wcapf_get_term_childs($parent_term_id, $taxonomy);
 
-					// get product ids for this term
-					$products_in_term = wcapf_get_term_products($parent_term_id, $taxonomy);
-
-					if ($query_type === 'and') {
-						// count product ids those are not present in $filtered_product_ids array
-						$count = sizeof(array_intersect($products_in_term, $filtered_product_ids));
+					/* ET */
+					if ( $enable_hierarchy !== true ) {
+						
+						$count = ( array_key_exists( $parent_term_id, $all_prod_term_ids ) ) ? $all_prod_term_ids[ $parent_term_id ] : 0;
+					
 					} else {
-						// count product ids those are present in $unfiltered_product_ids
-						$count = sizeof(array_intersect($products_in_term, $unfiltered_product_ids));
+
+						// get sub term ids for this term
+						$sub_term_ids = wcapf_get_term_childs($parent_term_id, $taxonomy);
+
+						// get product ids for this term
+						$products_in_term = wcapf_get_term_products($parent_term_id, $taxonomy);
+
+						if ($query_type === 'and') {
+							// count product ids those are not present in $filtered_product_ids array
+							$count = sizeof(array_intersect($products_in_term, $filtered_product_ids));
+						} else {
+							// count product ids those are present in $unfiltered_product_ids
+							$count = sizeof(array_intersect($products_in_term, $unfiltered_product_ids));
+						}
+
 					}
 
 					$force_show = false;
@@ -581,7 +652,7 @@ if (!function_exists('wcapf_dropdown_terms')) {
 						} else {
 							$html .= '<option value="' . $parent_term_id . '"' . $selected . '>' . $parent_term->name . '</option>';
 						}
-						
+
 						if (($enable_hierarchy === true && $show_children_only !== true) || ($show_children_only === true && (in_array($parent_term_id, $term_ids) || $force_show === true))) {
 
 							if (sizeof($sub_term_ids) > 0) {
@@ -599,8 +670,8 @@ if (!function_exists('wcapf_dropdown_terms')) {
 									'ancestors'          => $ancestors
 								);
 
-								$results = wcapf_dropdown_sub_terms($sub_term_args, $found, $depth = 1);
-								
+								$results = wcapf_list_sub_terms($sub_term_args, $found);
+
 								$html .= $results['html'];
 								$found = $results['found'];
 							}
@@ -617,5 +688,24 @@ if (!function_exists('wcapf_dropdown_terms')) {
 			'html'  => $html,
 			'found' => $found
 		);
+	}
+}
+
+/**
+ * Transient lifespan
+ *
+ * @return int
+ */
+if (!function_exists('wcapf_transient_lifespan')) {
+	function wcapf_transient_lifespan() {
+		$settings = get_option('wcapf_settings');
+
+		if ($settings && key_exists('disable_transients', $settings) && $settings['disable_transients'] == '1') {
+			$lifespan = 1;
+		} else {
+			$lifespan = WCAPF_CACHE_TIME;
+		}
+
+		return $lifespan;
 	}
 }

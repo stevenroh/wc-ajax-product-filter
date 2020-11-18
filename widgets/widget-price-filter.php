@@ -27,7 +27,7 @@ if (!class_exists('WCAPF_Price_Filter_Widget')) {
 			if (!is_post_type_archive('product') && !is_tax(get_object_taxonomies('product'))) {
 				return;
 			}
-			
+
 			global $wcapf;
 
 			// price range for filtered products
@@ -73,8 +73,18 @@ if (!class_exists('WCAPF_Price_Filter_Widget')) {
 			} else {
 				$price_lists = $instance['price_list'];
 				$show_currency = $instance['show_currency'];
-				$currency_symbol = get_woocommerce_currency_symbol();
-				$currency_position = get_option('woocommerce_currency_pos');
+
+				if (class_exists('WOOCS')) {
+					$woocs = new WOOCS();
+					$woocs_currencies = $woocs->get_currencies();
+					$woocs_current_currency = $woocs->current_currency;
+
+					$currency_symbol = $woocs_currencies[$woocs_current_currency]['symbol'];
+					$currency_position = $woocs_currencies[$woocs_current_currency]['position'];
+				} else {
+					$currency_symbol = get_woocommerce_currency_symbol();
+					$currency_position = get_option('woocommerce_currency_pos');
+				}
 			}
 
 			// HTML markup for price slider
@@ -106,19 +116,69 @@ if (!class_exists('WCAPF_Price_Filter_Widget')) {
 
 							$html .= '<a href="javascript:void(0)" data-key-min="min-price" data-value-min="' . $price_list['min'] . '" data-key-max="max-price" data-value-max="' . $price_list['max'] . '">';
 
-							if (!$show_currency) {
-								$html .= '<span class="min">' . $price_list['min'] . '</span> <span class="to">' . $price_list['to'] . '</span> <span class="max">' . $price_list['max'] . '</span>';
-							} else {
-								if ($currency_position === 'left') {
-									$html .= '<span class="min">' . $currency_symbol . $price_list['min'] . '</span> <span class="to">' . $price_list['to'] . '</span> <span class="max">' . $currency_symbol . $price_list['max'] . '</span>';										
-								} elseif ($currency_position === 'left_space') {
-									$html .= '<span class="min">' . $currency_symbol . ' ' . $price_list['min'] . '</span> <span class="to">' . $price_list['to'] . '</span> <span class="max">' . $currency_symbol . ' ' . $price_list['max'] . '</span>';										
-								} elseif ($currency_position === 'right') {
-									$html .= '<span class="min">' . $price_list['min'] . $currency_symbol . '</span> <span class="to">' . $price_list['to'] . '</span> <span class="max">' . $price_list['max'] . $currency_symbol . '</span>';										
-								} elseif ($currency_position === 'right_space') {
-									$html .= '<span class="min">' . $price_list['min'] . ' ' . $currency_symbol . '</span> <span class="to">' . $price_list['to'] . '</span> <span class="max">' . $price_list['max'] . ' ' . $currency_symbol . '</span>';										
+								if (!$show_currency) {
+									if ($price_list['min']) {
+										$html .= '<span class="min">' . $price_list['min'] . '</span>';
+										$html .= ' ';
+									}
+
+									$html .= '<span class="to">' . $price_list['to'] . '</span>';
+
+									if ($price_list['max']) {
+										$html .= ' ';
+										$html .= '<span class="max">' . $price_list['max'] . '</span>';
+									}
+								} else {
+									if ($currency_position === 'left') {
+										if ($price_list['min']) {
+											$html .= '<span class="min">' . $currency_symbol . $price_list['min'] . '</span>';
+											$html .= ' ';
+										}
+
+										$html .= '<span class="to">' . $price_list['to'] . '</span>';
+
+										if ($price_list['max']) {
+											$html .= ' ';
+											$html .= '<span class="max">' . $currency_symbol . $price_list['max'] . '</span>';
+										}
+									} elseif ($currency_position === 'left_space') {
+										if ($price_list['min']) {
+											$html .= '<span class="min">' . $currency_symbol . ' ' . $price_list['min'] . '</span>';
+											$html .= ' ';
+										}
+
+										$html .= '<span class="to">' . $price_list['to'] . '</span>';
+
+										if ($price_list['max']) {
+											$html .= ' ';
+											$html .= '<span class="max">' . $currency_symbol . ' ' . $price_list['max'] . '</span>';
+										}
+									} elseif ($currency_position === 'right') {
+										if ($price_list['min']) {
+											$html .= '<span class="min">' . $price_list['min'] . $currency_symbol . '</span>';
+											$html .= ' ';
+										}
+
+										$html .= '<span class="to">' . $price_list['to'] . '</span>';
+
+										if ($price_list['max']) {
+											$html .= ' ';
+											$html .= '<span class="max">' . $price_list['max'] . $currency_symbol . '</span>';
+										}
+									} elseif ($currency_position === 'right_space') {
+										if ($price_list['min']) {
+											$html .= '<span class="min">' . $price_list['min'] . ' ' . $currency_symbol . '</span>';
+											$html .= ' ';
+										}
+
+										$html .= '<span class="to">' . $price_list['to'] . '</span>';
+
+										if ($price_list['max']) {
+											$html .= ' ';
+											$html .= '<span class="max">' . $price_list['max'] . ' ' . $currency_symbol . '</span>';
+										}
+									}
 								}
-							}
 
 							$html .= '</a></li>';
 						}
@@ -296,11 +356,11 @@ if (!class_exists('WCAPF_Price_Filter_Widget')) {
 				$price_list = array();
 
 				foreach ($min as $key => $mmin) {
-					$mmin = intval($mmin);
-					$mmax = intval($max[$key]);
+					$mmin = $mmin;
+					$mmax = $max[$key];
 					$mto = !empty($to[$key]) ? $to[$key] : '-';
 
-					if (isset($mmin) && !empty($mmax)) {
+					if (!empty($mmin) || !empty($mmax)) {
 						$price_list[] = array(
 							'min' => $mmin,
 							'to'  => $mto,

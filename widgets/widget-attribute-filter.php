@@ -60,14 +60,21 @@ if (!class_exists('WCAPF_Attribute_Filter_Widget')) {
 				'show_count'         => $show_count,
 				'enable_hierarchy'   => $enable_hierarchy,
 				'show_children_only' => $show_children_only,
-				'url_array'          => $url_array
+				'url_array'          => $url_array,
+				'display_type'       => $display_type,
 			);
 
 			// if display type list
-			if ($display_type === 'list') {
+			/*if ($display_type === 'list') {
 				$output = wcapf_list_terms($attr_args);
 			} elseif ($display_type === 'dropdown') {
 				$output = wcapf_dropdown_terms($attr_args);
+			}*/
+
+			if ($display_type === 'dropdown') {
+				$output = wcapf_dropdown_terms($attr_args);
+			} else {
+				$output = wcapf_list_terms($attr_args);
 			}
 
 			$html = $output['html'];
@@ -144,6 +151,8 @@ if (!class_exists('WCAPF_Attribute_Filter_Widget')) {
 				<label for="<?php echo $this->get_field_id('display_type'); ?>"><?php printf(__('Display Type')) ?></label>
 				<select class="widefat" id="<?php echo $this->get_field_id('display_type'); ?>" name="<?php echo $this->get_field_name('display_type'); ?>">
 					<option value="list" <?php echo ((!empty($instance['display_type']) && $instance['display_type'] === 'list') ? 'selected="selected"' : ''); ?>><?php printf(__('List', 'wcapf')); ?></option>
+					<option value="button" <?php echo ((!empty($instance['display_type']) && $instance['display_type'] === 'button') ? 'selected="selected"' : ''); ?>><?php printf(__('Button', 'wcapf')); ?></option>
+					<option value="swatch" <?php echo ((!empty($instance['display_type']) && $instance['display_type'] === 'swatch') ? 'selected="selected"' : ''); ?>><?php printf(__('Swatch', 'wcapf')); ?></option>
 					<option value="dropdown" <?php echo ((!empty($instance['display_type']) && $instance['display_type'] === 'dropdown') ? 'selected="selected"' : ''); ?>><?php printf(__('Dropdown', 'wcapf')); ?></option>
 				</select>
 			</p>
@@ -162,14 +171,7 @@ if (!class_exists('WCAPF_Attribute_Filter_Widget')) {
 				<input id="<?php echo $this->get_field_id('show_count'); ?>" name="<?php echo $this->get_field_name('show_count'); ?>" type="checkbox" value="1" <?php echo (!empty($instance['show_count']) && $instance['show_count'] == true) ? 'checked="checked"' : ''; ?>>
 				<label for="<?php echo $this->get_field_id('show_count'); ?>"><?php printf(__('Show count', 'wcapf')); ?></label>
 			</p>
-			<p>
-				<input id="<?php echo $this->get_field_id('hierarchical'); ?>" name="<?php echo $this->get_field_name('hierarchical'); ?>" type="checkbox" value="1" <?php echo (!empty($instance['hierarchical']) && $instance['hierarchical'] == true) ? 'checked="checked"' : ''; ?>>
-				<label for="<?php echo $this->get_field_id('hierarchical'); ?>"><?php printf(__('Show hierarchy', 'wcapf')); ?></label>
-			</p>
-			<p>
-				<input id="<?php echo $this->get_field_id('show_children_only'); ?>" name="<?php echo $this->get_field_name('show_children_only'); ?>" type="checkbox" value="1" <?php echo (!empty($instance['show_children_only']) && $instance['show_children_only'] == true) ? 'checked="checked"' : ''; ?>>
-				<label for="<?php echo $this->get_field_id('show_children_only'); ?>"><?php printf(__('Only show children of the current attribute', 'wcapf')); ?></label>
-			</p>
+			<!-- ET Hierarchy Removed -->
 			<?php
 		}
 

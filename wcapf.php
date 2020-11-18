@@ -2,17 +2,16 @@
 /**
  * Plugin Name: WC Ajax Product Filter
  * Description: A plugin to filter woocommerce products with AJAX request.
- * Version: 2.0
+ * Version: 2.0.3.1
  * Author: Shamim Al Mamun
- * Author URI: https://github.com/shamimmoeen
  * Text Domain: wcapf
  * Domain Path: /languages
  *
- * This program is free software; you can redistribute it and/or modify it under the terms of the GNU 
- * General Public License version 2, as published by the Free Software Foundation.  You may NOT assume 
+ * This program is free software; you can redistribute it and/or modify it under the terms of the GNU
+ * General Public License version 2, as published by the Free Software Foundation.  You may NOT assume
  * that you can use any other version of the GPL.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without 
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without
  * even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
  * @since     1.0
@@ -37,20 +36,20 @@ if (!class_exists('WCAPF')) {
 		 *
 		 * @var string
 		 */
-		public $version = '1.0';
+		public $version = '2.0.3';
 
 		/**
 		 * Unique identifier for the plugin.
 		 *
 		 * The variable name is used as the text domain when internationalizing strings of text.
-		 * 
+		 *
 		 * @var string
 		 */
 		public $plugin_slug;
 
 		/**
 		 * A reference to an instance of this class.
-		 * 
+		 *
 		 * @var WCAPF
 		 */
 		private static $_instance = null;
@@ -65,7 +64,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Returns an instance of this class.
-		 * 
+		 *
 		 * @return WCAPF
 		 */
 		public static function instance()
@@ -136,7 +135,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Define constants if not already defined.
-		 * 
+		 *
 		 * @param  string $name
 		 * @param  string|bool $value
 		 */
@@ -149,28 +148,33 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Register and enqueue frontend scripts.
-		 * 
+		 *
 		 * @return mixed
 		 */
 		public function frontendScripts()
 		{
+			$settings = get_option('wcapf_settings');
+
 			wp_register_style('wcapf-style', WCAPF_ASSETS_PATH . 'css/wcapf-styles.css');
-			wp_register_style('font-awesome', WCAPF_ASSETS_PATH . 'css/font-awesome.min.css');
-			
+
+			if (key_exists('enable_font_awesome', $settings) && $settings['enable_font_awesome']) {
+				wp_register_style('font-awesome', WCAPF_ASSETS_PATH . 'css/font-awesome.min.css');
+			}
+
 			wp_register_script('wcapf-script', WCAPF_ASSETS_PATH . 'js/scripts.js', array('jquery'), '20120206', true);
 			wp_localize_script('wcapf-script', 'wcapf_price_filter_params', array(
 				'currency_symbol' => get_woocommerce_currency_symbol(),
 				'currency_pos'    => get_option('woocommerce_currency_pos')
 			));
-			if ($settings = get_option('wcapf_settings')) {
+
+			if ($settings) {
 				wp_localize_script('wcapf-script', 'wcapf_params', $settings);
 			}
-			
+
 			wp_register_style('wcapf-nouislider-style', WCAPF_ASSETS_PATH . 'css/nouislider.min.css');
 			wp_register_script('wcapf-nouislider-script', WCAPF_ASSETS_PATH . 'js/nouislider.min.js', array ('jquery'), '1.0', true);
 			wp_register_script('wcapf-price-filter-script', WCAPF_ASSETS_PATH . 'js/price-filter.js', array ('jquery'), '1.0', true);
 
-			wp_register_style('wcapf-select2', WCAPF_ASSETS_PATH . 'css/select2.css');
 			wp_register_script('wcapf-select2', WCAPF_ASSETS_PATH . 'js/select2.min.js', array ('jquery'), '1.0', true);
 		}
 
@@ -189,7 +193,7 @@ if (!class_exists('WCAPF')) {
 		 */
 		public function adminMenu()
 		{
-			add_options_page(__('WC Ajax Product Filter', $this->plugin_slug), __('WC Ajax Product Filter', $this->plugin_slug), 'manage_options', 'wcapf-settings', array($this, 'settingsPage'));
+			add_options_page(__('WC Ajax Product Filter', 'wcapf'), __('WC Ajax Product Filter', 'wcapf'), 'manage_options', 'wcapf-settings', array($this, 'settingsPage'));
 		}
 
 		/**
@@ -202,7 +206,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Default settings for this plugin.
-		 * 
+		 *
 		 * @return array
 		 */
 		public function defaultSettings()
@@ -215,9 +219,11 @@ if (!class_exists('WCAPF')) {
 				'sorting_control'      => '1',
 				'scroll_to_top'        => '1',
 				'scroll_to_top_offset' => '100',
-				'custom_scripts'       => ''
+				'enable_font_awesome'  => '1',
+				'custom_scripts'       => '',
+				'disable_transients'   => '',
 			);
-		}		
+		}
 
 		/**
 		 * Register settings.
@@ -241,7 +247,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Check for if filter is applied.
-		 * 
+		 *
 		 * @param  array $input
 		 * @return array
 		 */
@@ -251,12 +257,17 @@ if (!class_exists('WCAPF')) {
 				$input = apply_filters('wcapf_settings', $input);
 			}
 
+			if (isset($input['clear_transients']) && $input['clear_transients'] == '1' ) {
+				// clear transient
+				wcapf_clear_transients();
+			}
+
 			return $input;
 		}
 
 		/**
 		 * Get chosen filters.
-		 * 
+		 *
 		 * @return array
 		 */
 		public function getChosenFilters()
@@ -351,7 +362,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Filtered product ids for given terms.
-		 * 
+		 *
 		 * @return array
 		 */
 		public function filteredProductIdsForTerms()
@@ -431,7 +442,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Query for meta that should be set to the main query.
-		 * 
+		 *
 		 * @return array
 		 */
 		public function queryForMeta()
@@ -449,10 +460,10 @@ if (!class_exists('WCAPF')) {
 				);
 			}
 
-			// price range for all published products
-			$unfiltered_price_range = $this->getPriceRange(false);
-
 			if (isset($_GET['min-price']) || isset($_GET['max-price'])) {
+				// price range for all published products
+				$unfiltered_price_range = $this->getPriceRange(false);
+
 				if (sizeof($unfiltered_price_range) === 2) {
 					$min = (!empty($_GET['min-price'])) ? (int)$_GET['min-price'] : '';
 					$max = (!empty($_GET['max-price'])) ? (int)$_GET['max-price'] : '';
@@ -483,20 +494,11 @@ if (!class_exists('WCAPF')) {
 
 					// if WooCommerce Currency Switcher plugin is activated
 					if (class_exists('WOOCS')) {
-						$woocs = new WOOCS();
-						$chosen_currency = $woocs->get_woocommerce_currency();
-						$currencies = $woocs->get_currencies();
+						global $WOOCS;
 
-						if (sizeof($currencies) > 0) {
-							foreach ($currencies as $currency) {
-								if ($currency['name'] == $chosen_currency) {
-									$rate = $currency['rate'];
-								}
-							}
+						$min = floor($WOOCS->woocs_exchange_value($min));
+						$max = ceil($WOOCS->woocs_exchange_value($max));
 
-							$min = floor($min / $rate);
-							$max = ceil($max / $rate);
-						}
 					}
 
 					$meta_query[] = array(
@@ -514,7 +516,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Set filter.
-		 * 
+		 *
 		 * @param wp_query $q
 		 */
 		public function setFilter($q)
@@ -543,14 +545,14 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Retrive Product ids for given keyword.
-		 * 
+		 *
 		 * @return array
 		 */
 		public function productIdsForGivenKeyword()
 		{
 			if (isset($_GET['keyword']) && !empty($_GET['keyword'])) {
 				$keyword = $_GET['keyword'];
-				
+
 				$args = array(
 					's'           => $keyword,
 					'post_type'   => 'product',
@@ -570,49 +572,80 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Get the unfiltered product ids.
-		 * 
+		 *
 		 * @return array
 		 */
 		public function unfilteredProductIds()
 		{
-			$args = array(
-				'post_type'   => 'product',
-				'post_status' => 'publish',
-				'numberposts' => -1,
-				'fields'      => 'ids'
-			);
+ 			if (!is_tax(get_object_taxonomies('product'))) {
+ 				$args = array(
+ 					'post_type'   => 'product',
+ 					'post_status' => 'publish',
+ 					'numberposts' => -1,
+ 					'fields'      => 'ids'
+ 				);
 
-			// get unfiltered products using transients
-			$transient_name = 'wcapf_unfiltered_product_ids';
+ 				// get unfiltered products using transients
+ 				$transient_name = 'wcapf_unfiltered_product_ids';
 
-			if (false === ($unfiltered_product_ids = get_transient($transient_name))) {
-				$unfiltered_product_ids = get_posts($args);
-				set_transient($transient_name, $unfiltered_product_ids, WCAPF_CACHE_TIME);
-			}
+ 				if (false === ($unfiltered_product_ids = get_transient($transient_name))) {
+ 					$unfiltered_product_ids = get_posts($args);
+ 					set_transient($transient_name, $unfiltered_product_ids, wcapf_transient_lifespan());
+ 				}
 
-			return $unfiltered_product_ids;
-		}
+ 				return $unfiltered_product_ids;
+ 			} else {
+ 				global $wp_query;
+ 				$current_query = $wp_query;
+
+ 				$current_query = json_decode(json_encode($current_query), true);
+
+ 				$meta_queries = $current_query['meta_query']['queries'];
+ 				$tax_queries = $current_query['tax_query']['queries'];
+
+ 				$args = array(
+ 					'post_type'              => 'product',
+ 					'numberposts'            => -1,
+ 					'post_status'            => 'publish',
+ 					'meta_query'             => $meta_queries,
+ 					'tax_query'              => $tax_queries,
+ 					'fields'                 => 'ids',
+ 					'no_found_rows'          => true,
+ 					'update_post_meta_cache' => false,
+ 					'update_post_term_cache' => false,
+ 					'pagename'               => '',
+ 				);
+
+ 				$unfiltered_product_ids = get_posts($args);
+
+ 				if ($unfiltered_product_ids && !is_wp_error($unfiltered_product_ids)) {
+ 					return $unfiltered_product_ids;
+ 				} else {
+ 					return array();
+ 				}
+ 			}
+ 		}
 
 		/**
 		 * Get filtered product ids.
-		 * 
+		 *
 		 * @return array
 		 */
 		public function filteredProductIds()
 		{
 			global $wp_query;
 			$current_query = $wp_query;
-			
+
 			if (!is_object($current_query) && !is_main_query() && !is_post_type_archive('product') && !is_tax(get_object_taxonomies('product'))) {
 				return;
 			}
-			
+
 			$modified_query = $current_query->query;
 			unset($modified_query['paged']);
 			$meta_query = (key_exists('meta_query', $current_query->query_vars)) ? $current_query->query_vars['meta_query'] : array();
 			$tax_query = (key_exists('tax_query', $current_query->query_vars)) ? $current_query->query_vars['tax_query'] : array();
 			$post__in = (key_exists('post__in', $current_query->query_vars)) ? $current_query->query_vars['post__in'] : array();
-			
+
 			$filtered_product_ids = get_posts(
 				array_merge(
 					$modified_query,
@@ -637,7 +670,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Find Prices for given products.
-		 * 
+		 *
 		 * @param  array $products
 		 * @return array
 		 */
@@ -647,7 +680,7 @@ if (!class_exists('WCAPF')) {
 
 			foreach ($products as $id) {
 				$meta_value = get_post_meta($id, '_price', true);
-				
+
 				if ($meta_value) {
 					$price_range[] = $meta_value;
 				}
@@ -678,7 +711,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Find price range for filtered products.
-		 * 
+		 *
 		 * @return array
 		 */
 		public function filteredProductsPriceRange()
@@ -696,7 +729,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Find price range for unfiltered products.
-		 * 
+		 *
 		 * @return array
 		 */
 		public function unfilteredProductsPriceRange()
@@ -712,7 +745,7 @@ if (!class_exists('WCAPF')) {
 
 			if (false === ($unfiltered_products_price_range = get_transient($transient_name))) {
 				$unfiltered_products_price_range = $this->findPriceRange($products);
-				set_transient($transient_name, $unfiltered_products_price_range, WCAPF_CACHE_TIME);
+				set_transient($transient_name, $unfiltered_products_price_range, wcapf_transient_lifespan());
 			}
 
 			return $unfiltered_products_price_range;
@@ -722,7 +755,7 @@ if (!class_exists('WCAPF')) {
 		 * Get Price Range for given product ids.
 		 * If filtered is true then return price range for filtered products,
 		 * otherwise return price range for all products.
-		 * 
+		 *
 		 * @param  boolean $filtered
 		 * @return array
 		 */
@@ -734,14 +767,14 @@ if (!class_exists('WCAPF')) {
 				$price_range = $this->unfilteredProductsPriceRange();
 			}
 
-			if (sizeof($price_range) > 2) {
+			if (sizeof($price_range) > 1) {
 				$min = $max = false;
 
 				foreach ($price_range as $price) {
 					if ($min === false || $min > (int)$price) {
 						$min = floor($price);
 					}
-					
+
 					if ($max === false || $max < (int)$price) {
 						$max = ceil($price);
 					}
@@ -770,20 +803,10 @@ if (!class_exists('WCAPF')) {
 
 				// if WooCommerce Currency Switcher plugin is activated
 				if (class_exists('WOOCS')) {
-					$woocs = new WOOCS();
-					$chosen_currency = $woocs->get_woocommerce_currency();
-					$currencies = $woocs->get_currencies();
+					global $WOOCS;
 
-					if (sizeof($currencies) > 0) {
-						foreach ($currencies as $currency) {
-							if ($currency['name'] == $chosen_currency) {
-								$rate = $currency['rate'];
-							}
-						}
-
-						$min = floor($min * $rate);
-						$max = ceil($max * $rate);
-					}
+					$min = floor($WOOCS->woocs_exchange_value($min));
+					$max = ceil($WOOCS->woocs_exchange_value($max));
 				}
 
 				if ($min == $max) {
@@ -801,7 +824,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * HTML wrapper to insert before the shop loop.
-		 * 
+		 *
 		 * @return string
 		 */
 		public static function beforeProductsHolder()
@@ -811,7 +834,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * HTML wrapper to insert after the shop loop.
-		 * 
+		 *
 		 * @return string
 		 */
 		public static function afterProductsHolder()
@@ -821,7 +844,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * HTML wrapper to insert before the not found product loops.
-		 * 
+		 *
 		 * @param  string $template_name
 		 * @param  string $template_path
 		 * @param  string $located
@@ -835,7 +858,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * HTML wrapper to insert after the not found product loops.
-		 * 
+		 *
 		 * @param  string $template_name
 		 * @param  string $template_path
 		 * @param  string $located
@@ -849,9 +872,9 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Decode pagination links.
-		 * 
+		 *
 		 * @param string $link
-		 * 
+		 *
 		 * @return string
 		 */
 		public static function paginateLinks($link)
@@ -870,7 +893,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Get the plugin Path.
-		 * 
+		 *
 		 * @return string
 		 */
 		public function pluginPath()
@@ -880,7 +903,7 @@ if (!class_exists('WCAPF')) {
 
 		/**
 		 * Get the plugin assets path.
-		 * 
+		 *
 		 * @return string
 		 */
 		public function assetsPath()
@@ -894,7 +917,7 @@ if (!class_exists('WCAPF')) {
 		public function needWoocommerce()
 		{
 			echo '<div class="error">';
-			echo '<p>' . __('WC Ajax Product Filter needs WooCommerce plguin to work.', $this->plugin_slug) . '</p>';
+			echo '<p>' . __('WC Ajax Product Filter needs WooCommerce plguin to work.', 'wcapf') . '</p>';
 			echo '</div>';
 		}
 
@@ -904,19 +927,19 @@ if (!class_exists('WCAPF')) {
 		public function updateWoocommerce()
 		{
 			echo '<div class="error">';
-			echo '<p>' . __('To use WC Ajax Product Filter update your WooCommerce plugin.', $this->plugin_slug) . '</p>';
+			echo '<p>' . __('To use WC Ajax Product Filter update your WooCommerce plugin.', 'wcapf') . '</p>';
 			echo '</div>';
 		}
 
 		/**
 		 * Show action links on the plugins page.
-		 * 
+		 *
 		 * @param  array $links
 		 * @return array
 		 */
 		public function pluginActionLinks($links)
 		{
-			$links[] = '<a href="' . admin_url('options-general.php?page=wcapf-settings') . '">' . __('Settings', $this->plugin_slug) . '</a>';
+			$links[] = '<a href="' . admin_url('options-general.php?page=wcapf-settings') . '">' . __('Settings', 'wcapf') . '</a>';
 			return $links;
 		}
 	}

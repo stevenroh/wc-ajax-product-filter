@@ -33,6 +33,14 @@ Features:
 
 ## Frequently Asked Questions
 
+= Incorrect number of products =
+
+Go to settings page. You will see a checkbox to clear transients.
+
+= Active filters doesn't update =
+
+Maybe your widgets don't have ids. See this support. https://wordpress.org/support/topic/active-filters-doesnt-update/
+
 = Can I add custom scripts to load after updating shop loop? =
 
 Yes, you can. Go to settings page. You will see a text field to put your custom scripts.
@@ -44,10 +52,27 @@ Yes, you can. Go to settings page. You will see a text field to chage the overla
 ## Screenshots
 
 1. Plugin frontend
-2. Widget in sidebar
-3. Backend settings
+2. WC Ajax Product Filter by Attribute widget settings
+3. WC Ajax Product Filter by Price display type list widget settings
+4. Backend settings
 
 ## Changelog
+
+= 2.0.3 =
+
+* Fixed bug - 'wcapf_get_term_objects' funtion was working incorrectly
+
+= 2.0.2 =
+
+* Added option to disable transients
+* Added option to clear transients
+
+= 2.0.1 =
+
+* Fixed filtering bugs on product taxonomy pages
+* Added more functionality to price filter display type list widget
+* Added option to enable/disable font awesome
+* Updated localization
 
 = 2.0 =
 

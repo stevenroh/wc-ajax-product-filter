@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: WC Ajax Product Filter
+ * Plugin Name: WC Ajax Product Filter (rohs)
  * Description: A plugin to filter woocommerce products with AJAX request.
  * Version: 2.0.3.1
- * Author: Shamim Al Mamun
+ * Author: Shamim Al Mamun, rohs
  * Text Domain: wcapf
  * Domain Path: /languages
  *

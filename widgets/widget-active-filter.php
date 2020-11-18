@@ -70,30 +70,29 @@ if (!class_exists('WCAPF_Active_Filters_Widget')) {
 
 					}
 
-					if (!empty($instance['button_text'])) {
-						if ( defined( 'SHOP_IS_ON_FRONT' ) ) {
-							$link = home_url();
-						} elseif ( is_post_type_archive( 'product' ) || is_page( wc_get_page_id('shop') ) ) {
-							$link = get_post_type_archive_link( 'product' );
-						} else {
-							$link = get_term_link( get_query_var('term'), get_query_var('taxonomy') );
-						}
-
-						/**
-						 * Search Arg.
-						 * To support quote characters, first they are decoded from &quot; entities, then URL encoded.
-						 */
-						if ( get_search_query() ) {
-							$link = add_query_arg( 's', rawurlencode( htmlspecialchars_decode( get_search_query() ) ), $link );
-						}
-
-						// Post Type Arg
-						if ( isset( $_GET['post_type'] ) ) {
-							$link = add_query_arg( 'post_type', wc_clean( $_GET['post_type'] ), $link );
-						}
-
-						$html .= '<a href="javascript:void(0)" class="reset" data-location="' . $link . '">' . $instance['button_text'] . '</a>';
+					if ( defined( 'SHOP_IS_ON_FRONT' ) ) {
+						$link = home_url();
+					} elseif ( is_post_type_archive( 'product' ) || is_page( wc_get_page_id('shop') ) ) {
+						$link = get_post_type_archive_link( 'product' );
+					} else {
+						$link = get_term_link( get_query_var('term'), get_query_var('taxonomy') );
 					}
+
+					/**
+					 * Search Arg.
+					 * To support quote characters, first they are decoded from &quot; entities, then URL encoded.
+					 */
+					if ( get_search_query() ) {
+						$link = add_query_arg( 's', rawurlencode( htmlspecialchars_decode( get_search_query() ) ), $link );
+					}
+
+					// Post Type Arg
+					if ( isset( $_GET['post_type'] ) ) {
+						$link = add_query_arg( 'post_type', wc_clean( $_GET['post_type'] ), $link );
+					}
+
+					$html .= '<a href="javascript:void(0)" class="reset" data-location="' . $link . '">' . __('Remove all: ', 'wcapf') . '</a>';
+
 
 				$html .= '</div>';
 			}
@@ -120,9 +119,7 @@ if (!class_exists('WCAPF_Active_Filters_Widget')) {
 
 			echo $before_widget;
 
-			if (!empty($instance['title'])) {
-				echo $args['before_title'] . apply_filters('widget_title', $instance['title']). $args['after_title'];
-			}
+			echo $args['before_title'] . __('Active Filters:', 'wcapf') . $args['after_title'];
 
 			echo $html;
 
@@ -139,12 +136,11 @@ if (!class_exists('WCAPF_Active_Filters_Widget')) {
 		public function form($instance) {
 			?>
 			<p>
-				<label for="<?php echo $this->get_field_id('title'); ?>"><?php printf(__('Title:', 'wcapf')); ?></label>
-				<input class="widefat" id="<?php echo $this->get_field_id('title'); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo (!empty($instance['title']) ? esc_attr($instance['title']) : ''); ?>">
-			</p>
-			<p>
-				<label for="<?php echo $this->get_field_id('button_text'); ?>"><?php printf(__('Button Text:', 'wcapf')); ?></label>
-				<input class="widefat" id="<?php echo $this->get_field_id('button_text'); ?>" name="<?php echo $this->get_field_name( 'button_text' ); ?>" type="text" value="<?php echo (!empty($instance['button_text']) ? esc_attr($instance['button_text']) : ''); ?>">
+				<?php _e('No widgets settings, translations do the job') ?>
+				<ul>
+					<li>Active Filters:</li>
+					<li>Remove all:</li>
+				</ul>
 			</p>
 			<?php
 		}
@@ -160,9 +156,6 @@ if (!class_exists('WCAPF_Active_Filters_Widget')) {
 		 * @return array Updated safe values to be saved.
 		 */
 		public function update($new_instance, $old_instance) {
-			$instance = array();
-			$instance['title'] = (!empty($new_instance['title'])) ? strip_tags($new_instance['title']) : '';
-			$instance['button_text'] = (!empty($new_instance['button_text'])) ? strip_tags($new_instance['button_text']) : '';
 			return $instance;
 		}
 	}

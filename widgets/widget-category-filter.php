@@ -95,9 +95,7 @@ if (!class_exists('WCAPF_Category_Filter_Widget')) {
 
 			echo $before_widget;
 
-			if (!empty($instance['title'])) {
-				echo $args['before_title'] . apply_filters('widget_title', $instance['title']). $args['after_title'];
-			}
+			echo $args['before_title'] . __('Filter by category:', 'wcapf') . $args['after_title'];
 
 			echo $html;
 
@@ -113,10 +111,6 @@ if (!class_exists('WCAPF_Category_Filter_Widget')) {
 		 */
 		public function form($instance) {
 			?>
-			<p>
-				<label for="<?php echo $this->get_field_id('title'); ?>"><?php printf(__('Title:', 'wcapf')); ?></label>
-				<input class="widefat" id="<?php echo $this->get_field_id('title'); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo (!empty($instance['title']) ? esc_attr($instance['title']) : ''); ?>">
-			</p>
 			<p>
 				<label for="<?php echo $this->get_field_id('display_type'); ?>"><?php printf(__('Display Type')) ?></label>
 				<select class="widefat" id="<?php echo $this->get_field_id('display_type'); ?>" name="<?php echo $this->get_field_name('display_type'); ?>">
@@ -162,7 +156,6 @@ if (!class_exists('WCAPF_Category_Filter_Widget')) {
 		 */
 		public function update($new_instance, $old_instance) {
 			$instance = array();
-			$instance['title'] = (!empty($new_instance['title'])) ? strip_tags($new_instance['title']) : '';
 			$instance['display_type'] = (!empty($new_instance['display_type'])) ? strip_tags($new_instance['display_type']) : '';
 			$instance['query_type'] = (!empty($new_instance['query_type'])) ? strip_tags($new_instance['query_type']) : '';
 			$instance['enable_multiple'] = (!empty($new_instance['enable_multiple'])) ? strip_tags($new_instance['enable_multiple']) : '';
